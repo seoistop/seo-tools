@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -1240,7 +1241,7 @@ add_filter( 'rank_math/json_ld', function( $data, $jsonld ) {
       <div class="section">
         <div class="section-title" onclick="toggleSection(this)"><span>🎨</span> Generate ảnh minh họa (Gemini Image API)<span class="chev">▼</span></div>
         <div class="section-content">
-          <p class="hint" style="margin-bottom:10px">💡 Generate ảnh minimalist clean (800×400 JPG, &lt;100KB) cho các section đã tích ở trên. Mỗi ảnh ~20-30s. Dùng <strong>Gemini 2.5 Flash Image</strong> (free tier).</p>
+          <p class="hint" style="margin-bottom:10px">💡 Generate ảnh 800×400 JPG, &lt;100KB cho các section đã tích. Mỗi ảnh ~20-30s. Mặc định dùng <strong>Gemini 3.1 Flash Image (Nano Banana 2)</strong>.</p>
           <div class="row-2">
             <div class="field">
               <label>Style</label>
@@ -1253,11 +1254,35 @@ add_filter( 'rank_math/json_ld', function( $data, $jsonld ) {
             <div class="field">
               <label>Model Image</label>
               <select id="fcImgModel">
-                <option value="gemini-2.5-flash-image" selected>Gemini 2.5 Flash Image - Nano Banana (nhanh, free)</option>
-                <option value="gemini-3.1-flash-image-preview">Gemini 3.1 Flash Image - Nano Banana 2 (mới hơn)</option>
-                <option value="gemini-3-pro-image-preview">Gemini 3 Pro Image - Nano Banana Pro (chất cao, chậm)</option>
+                <option value="gemini-3.1-flash-image-preview" selected>Gemini 3.1 Flash Image - Nano Banana 2 (⭐ chất lượng cao, hỗ trợ logo)</option>
+                <option value="gemini-2.5-flash-image">Gemini 2.5 Flash Image - Nano Banana (nhanh hơn)</option>
+                <option value="gemini-3-pro-image-preview">Gemini 3 Pro Image - Nano Banana Pro (chất cao nhất, chậm)</option>
               </select>
             </div>
+          </div>
+          <div style="margin-top:10px;padding:12px;background:#faf5ff;border:1px solid #c4b5fd;border-radius:8px">
+            <div style="font-size:13px;font-weight:600;color:#6b21a8;margin-bottom:8px">🏷️ Logo brand (optional)</div>
+            <div style="display:flex;gap:6px;margin-bottom:8px">
+              <button type="button" class="small" id="logoTabUrlBtn" onclick="switchLogoSource('url')" style="flex:1">🔗 Dùng URL</button>
+              <button type="button" class="small ghost" id="logoTabUploadBtn" onclick="switchLogoSource('upload')" style="flex:1">📁 Upload file</button>
+            </div>
+            <div id="logoUrlSource" style="display:block">
+              <input type="url" id="fcLogoUrl" placeholder="https://example.com/wp-content/uploads/logo.webp" style="width:100%" oninput="previewLogoFromUrl()" />
+            </div>
+            <div id="logoUploadSource" style="display:none">
+              <input type="file" id="fcLogoFile" accept="image/png,image/jpeg,image/webp,image/svg+xml" onchange="previewLogoFromFile()" style="width:100%;padding:8px;border:1px dashed #c4b5fd;border-radius:6px;background:#fff" />
+            </div>
+            <div id="logoPreviewBox" style="display:none;margin-top:10px;padding:10px;background:#fff;border-radius:6px;border:1px solid #e9d5ff">
+              <div style="display:flex;align-items:center;gap:12px">
+                <img id="logoPreviewImg" src="" alt="logo preview" style="max-width:80px;max-height:50px;object-fit:contain;background:#f5f3ff;padding:4px;border-radius:4px" />
+                <div style="flex:1;font-size:12px">
+                  <div id="logoPreviewName" style="color:#1f2937;font-weight:600">-</div>
+                  <div id="logoPreviewSize" style="color:#6b7280">-</div>
+                </div>
+                <button type="button" class="small ghost" onclick="clearLogoSelection()" style="padding:4px 8px;font-size:11px">✕ Xóa</button>
+              </div>
+            </div>
+            <p class="hint" style="margin-top:8px">💡 AI sẽ chèn logo nhỏ (10-15% width) vào vị trí phù hợp. ⚠️ Yêu cầu model <strong>Gemini 3.1 Flash</strong> hoặc <strong>3 Pro</strong>.</p>
           </div>
           <div class="btn-group">
             <button onclick="generateSectionImages()" id="fcImgBtn" style="background:#c026d3">🎨 Generate ảnh cho section đã chọn</button>
@@ -1273,7 +1298,18 @@ add_filter( 'rank_math/json_ld', function( $data, $jsonld ) {
         <button class="ghost" onclick="clearFullContent()">⇺ Xóa kết quả</button>
       </div>
       <div class="progress"><div id="fcProgressBar"></div></div>
-      <p class="hint">⚠️ Cần nhập Gemini API Key ở tab 🤖 AI Content trước. Generation ~30-60s.</p>
+      <p class="hint">⚠️ Cần nhập Gemini API Key ở tab 🤖 AI Content trước. Generation ~15-30s.</p>
+
+      <!-- Console Log Panel (v5.9.12) -->
+      <div style="margin-top:14px;border:1px solid #1e293b;border-radius:6px;background:#0f172a;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#1e293b;border-bottom:1px solid #334155">
+          <span style="color:#facc15;font-weight:600;font-size:12px;font-family:monospace">🔍 CONSOLE LOG (chi tiết từng bước)</span>
+          <button onclick="_fcClearLog()" style="padding:3px 8px;font-size:11px;background:#334155;color:#e2e8f0;border:none;border-radius:4px;cursor:pointer">Xóa log</button>
+        </div>
+        <div id="fcLogPanel" style="max-height:260px;overflow-y:auto;padding:8px 12px;color:#e2e8f0;font-family:'Consolas','Monaco',monospace;font-size:11px;line-height:1.5;background:#0f172a">
+          <div style="color:#64748b">Chưa có log. Bấm "Generate Full Content" để bắt đầu.</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -2666,219 +2702,507 @@ function buildFullContentPrompt(){
     if(document.getElementById('sec'+i).checked) sections.push(i);
   }
 
-  const depthMap = {short:'1500 từ',medium:'2500 từ',long:'3500 từ'};
+  const depthMap = {short:'1800 từ',medium:'2800 từ',long:'3800 từ'};
   const toneMap = {
-    professional: 'Chuyên nghiệp, trang trọng. Câu vừa phải, dùng từ chuyên môn (hệ sinh thái, tối ưu, đảm bảo, cam kết).',
-    friendly: 'Thân thiện, gần gũi. Câu ngắn gọn, dễ đọc, gọi "anh em", "bet thủ", "người chơi".',
-    hype: 'Hype/CTA mạnh. Adjective vừa phải (đỉnh cao, đẳng cấp). Có CTA "Đăng ký ngay", "Nhận thưởng".'
+    professional: 'Chuyên nghiệp, trang trọng. Câu vừa phải, từ chuyên môn.',
+    friendly: 'Thân thiện, gần gũi. Câu ngắn, gọi "anh em", "bet thủ".',
+    hype: 'Hype/CTA mạnh. Có CTA "Đăng ký ngay".'
   };
 
-  const variationSeed = Math.floor(Date.now() / 1000) % 1000;
+  const variationSeed = Math.floor(Math.random() * 9999);
 
-  // === SECTION INTENT (mô tả ý NGHĨA, không ép H2 text) ===
+  // === CREATIVE DIRECTIVE (random g\u00f3c nh\u00ecn \u2013 AI t\u1ef1 brainstorm n\u1ed9i dung) ===
+  // Thay v\u00ec \u00e9p pool n\u1ed9i dung c\u1ee5 th\u1ec3 \u2192 ch\u1ec9 random \"H\u01af\u1edaNG SUY NGH\u0128\" \u0111\u1ec3 AI t\u1ef1 t\u1ea1o
+  const _pickRand = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+  // 1. \u01afU \u0110I\u1ec2M - random g\u00f3c nh\u00ecn brainstorm
+  const advAngles = [
+    'g\u00f3c nh\u00ecn TR\u1ea2I NGHI\u1ec6M NG\u01af\u1edcI D\u00d9NG (UX/UI, t\u1ed1c \u0111\u1ed9, ti\u1ec7n l\u1ee3i)',
+    'g\u00f3c nh\u00ecn C\u00d4NG NGH\u1ec6 & H\u1ea0 T\u1ea6NG (server, AI, b\u1ea3o m\u1eadt, RNG)',
+    'g\u00f3c nh\u00ecn T\u00c0I CH\u00cdNH (k\u00e8o, RTP, hoa h\u1ed3ng, ph\u01b0\u01a1ng th\u1ee9c thanh to\u00e1n)',
+    'g\u00f3c nh\u00ecn \u0110\u1ed0I T\u00c1C & H\u1ec6 SINH TH\u00c1I (provider, partner, c\u1ed9ng \u0111\u1ed3ng)',
+    'g\u00f3c nh\u00ecn CH\u0102M S\u00d3C KH\u00c1CH H\u00c0NG (CSKH, VIP, \u0111\u00e0o t\u1ea1o)',
+    'g\u00f3c nh\u00ecn MINH B\u1ea0CH & UY T\u00cdN (gi\u1ea5y ph\u00e9p, ki\u1ec3m to\u00e1n, fairness)'
+  ];
+  const advAngle1 = _pickRand(advAngles);
+  const advAngle2 = _pickRand(advAngles.filter(a => a !== advAngle1));
+  const advCount = 3 + Math.floor(Math.random() * 3); // 3, 4 ho\u1eb7c 5
+
+  // 2. GAME - random th\u1ec3 lo\u1ea1i + g\u00f3c gi\u1edbi thi\u1ec7u
+  const gameGenres = [
+    'C\u00e1 c\u01b0\u1ee3c th\u1ec3 thao', 'Casino tr\u1ef1c tuy\u1ebfn', 'Slot & N\u1ed5 h\u0169', 'B\u1eafn c\u00e1 \u0111\u1ed5i th\u01b0\u1edfng',
+    '\u0110\u00e1 g\u00e0 tr\u1ef1c ti\u1ebfp', 'Game b\u00e0i d\u00e2n gian', 'X\u1ed5 s\u1ed1 & L\u00f4 \u0111\u1ec1', 'eSports', 'Game m\u1edbi/tr\u00f2 ch\u01a1i nhanh'
+  ];
+  // shuffle r\u1ed3i pick 4-5
+  const _shuffled = [...gameGenres].sort(()=>Math.random()-0.5);
+  const gameCount = 4 + Math.floor(Math.random() * 2);
+  const gamePickedGenres = _shuffled.slice(0, gameCount);
+
+  const gameNarrativeStyles = [
+    'theo \u0110\u1ed8 PH\u1ed4 BI\u1ebeN c\u1ee7a th\u1ec3 lo\u1ea1i \u1edf VN (b\u1eaft \u0111\u1ea7u t\u1eeb game hot nh\u1ea5t \u0111\u1ebfn ni\u1ec1m \u0111am m\u00ea ng\u00e1ch)',
+    'theo PROVIDER N\u1ed4I B\u1eacT (gi\u1edbi thi\u1ec7u provider tr\u01b0\u1edbc, k\u1ec3 game ti\u00eau bi\u1ec3u sau)',
+    'theo T\u00cdNH N\u0102NG K\u1ef8 THU\u1eacT (RTP, min bet, live stream, multiplayer)',
+    'theo C\u1ea2M X\u00daC NG\u01af\u1edcI CH\u01a0I (h\u1ed3i h\u1ed9p, gi\u1ea3i tr\u00ed, t\u01b0 duy)',
+    'theo BR\u00caN VS NEW (game c\u1ed5 \u0111i\u1ec3n vs game m\u1edbi)'
+  ];
+  const gameStyle = _pickRand(gameNarrativeStyles);
+
+  // 3. KHUY\u1ebeN M\u00c3I - random ch\u1ee7 \u0111\u1ec1 + \u0111\u1ed1i t\u01b0\u1ee3ng
+  const promoThemes = [
+    'TH\u1eedI \u0110I\u1ec2M (theo m\u00f9a/s\u1ef1 ki\u1ec7n: T\u1ebft, World Cup, sinh nh\u1eadt brand, cu\u1ed1i tu\u1ea7n)',
+    'GIAI \u0110O\u1ea0N TH\u00c0NH VI\u00caN (t\u00e2n th\u1ee7 \u2192 active \u2192 VIP \u2192 hi-roller)',
+    'LO\u1ea0I S\u1ea2N PH\u1ea8M (th\u1ec3 thao / casino / slot / b\u1eafn c\u00e1 / \u0111\u00e1 g\u00e0)',
+    'C\u01a0 CH\u1ebe TH\u01af\u1edeNG (th\u01b0\u1edfng n\u1ea1p / hoa h\u1ed3ng / cashback / b\u1ea3o hi\u1ec3m / nhi\u1ec7m v\u1ee5)',
+    'M\u1ee4C TI\u00caU NG\u01af\u1edcI CH\u01a0I (gi\u1eef ch\u00e2n / t\u0103ng doanh thu / tri \u00e2n / khuy\u1ebfn kh\u00edch th\u1eed game m\u1edbi)'
+  ];
+  const promoTheme = _pickRand(promoThemes);
+  const promoCount = 4 + Math.floor(Math.random() * 3); // 4, 5 ho\u1eb7c 6
+
+  // 4. RANDOM TABLE LAYOUT - quy\u1ebft \u0111\u1ecbnh section n\u00e0o d\u00f9ng table/list/blocks
+  // T\u1ed1i \u0111a 2 table/b\u00e0i \u0111\u1ec3 tr\u00e1nh n\u1eb7ng v\u00e0 \u0111\u1ec3 SEO t\u1ed1t h\u01a1n
+  const tableLayouts = [
+    { sec2: 'table',   sec3: 'h3blocks', sec5: 'h3blocks', desc: 'Ch\u1ec9 section 2 d\u00f9ng table' },
+    { sec2: 'h3blocks',sec3: 'h3blocks', sec5: 'table',    desc: 'Ch\u1ec9 section 5 d\u00f9ng table' },
+    { sec2: 'table',   sec3: 'h3blocks', sec5: 'table',    desc: 'Section 2+5 d\u00f9ng table' },
+    { sec2: 'h3blocks',sec3: 'table',    sec5: 'h3blocks', desc: 'Ch\u1ec9 section 3 d\u00f9ng table (ng\u01b0\u1ee3c convention)' },
+    { sec2: 'h3blocks',sec3: 'h3blocks', sec5: 'h3blocks', desc: 'Kh\u00f4ng d\u00f9ng table - to\u00e0n h3 blocks' },
+    { sec2: 'compactlist', sec3: 'h3blocks', sec5: 'table', desc: 'Section 2 d\u1ea1ng list ng\u1eafn' }
+  ];
+  const layout = _pickRand(tableLayouts);
+
+  // 5. T\u00d4NG QUAN (section 1) - random g\u00f3c k\u1ec3
+  const overviewAngles = [
+    'Tr\u00ecnh b\u00e0y theo D\u00d2NG TH\u1edcI GIAN (l\u1ecbch s\u1eed ph\u00e1t tri\u1ec3n)',
+    'Tr\u00ecnh b\u00e0y theo QUY M\u00d4 V\u1eacN H\u00c0NH (s\u1ed1 li\u1ec7u, th\u1ed1ng k\u00ea)',
+    'Tr\u00ecnh b\u00e0y theo C\u1ed8T M\u1ed0C PH\u00c1P L\u00dd (gi\u1ea5y ph\u00e9p, ch\u1ee9ng nh\u1eadn)',
+    'Tr\u00ecnh b\u00e0y theo H\u1ec6 SINH TH\u00c1I (\u0111\u1ed1i t\u00e1c, partner)',
+    'Tr\u00ecnh b\u00e0y theo S\u1ee8 M\u1ec6NH (t\u1ea7m nh\u00ecn, gi\u00e1 tr\u1ecb c\u1ed1t l\u00f5i)'
+  ];
+  const overviewAngle = _pickRand(overviewAngles);
+
+  // 6. FAQ - random ch\u1ee7 \u0111\u1ec1 \u01b0u ti\u00ean
+  const faqFocus = _pickRand([
+    'thi\u00ean v\u1ec1 PH\u00c1P L\u00dd v\u00e0 AN TO\u00c0N',
+    'thi\u00ean v\u1ec1 GIAO D\u1eacH (n\u1ea1p/r\u00fat/th\u1eddi gian)',
+    'thi\u00ean v\u1ec1 KHUY\u1ebeN M\u00c3I & \u01afU \u0110\u00c3I',
+    'thi\u00ean v\u1ec1 K\u1ef8 THU\u1eacT (app, link, l\u1ed7i k\u1ebft n\u1ed1i)',
+    'c\u00e2n b\u1eb1ng \u0111\u1ee7 c\u1ea3 4 g\u00f3c tr\u00ean'
+  ]);
+
+  // 7. CTA TONE (section 7)
+  const ctaTone = _pickRand([
+    'CTA M\u1ec0M (g\u1ee3i \u00fd, kh\u00f4ng \u00e9p)',
+    'CTA M\u1ea0NH (k\u00eau g\u1ecdi h\u00e0nh \u0111\u1ed9ng tr\u1ef1c ti\u1ebfp)',
+    'CTA C\u1ea2M X\u00daC (gi\u00e1 tr\u1ecb c\u1ea3m x\u00fac, c\u1ed9ng \u0111\u1ed3ng)',
+    'CTA FOMO (\u01b0u \u0111\u00e3i c\u00f3 h\u1ea1n, b\u1ecf l\u1ee1 ti\u1ebfc)'
+  ]);
+
+  // Log directives to console
+  console.log('[FC-PROMPT] === CREATIVE DIRECTIVES (random m\u1ed7i l\u1ea7n) ===');
+  console.log('[FC-PROMPT] Overview angle:', overviewAngle);
+  console.log('[FC-PROMPT] Adv:', advCount, '\u01b0u \u0111i\u1ec3m, angle:', advAngle1, '+', advAngle2);
+  console.log('[FC-PROMPT] Game:', gameCount, 'th\u1ec3 lo\u1ea1i:', gamePickedGenres, 'style:', gameStyle);
+  console.log('[FC-PROMPT] Promo:', promoCount, 'KM, theme:', promoTheme);
+  console.log('[FC-PROMPT] Table layout:', layout.desc);
+  console.log('[FC-PROMPT] FAQ focus:', faqFocus);
+  console.log('[FC-PROMPT] CTA tone:', ctaTone);
+
+  // === H1 + SAPO VARIATIONS ===
+  const h1Patterns = [
+    `${brand} ⚜️ Trang Chủ ${brand}.COM Chính Thức ${year.length<=4?'2026':year}`,
+    `${brand} 🎖️ Link Truy Cập ${brand}.COM | Tặng ${bonus}`,
+    `${brand} - ${brand}.COM | Nhà Cái Uy Tín #1 Châu Á`,
+    `${brand} ⭐️ Đăng Ký ${brand}.COM Nhận ${bonus} Tân Thủ`,
+    `${brand} ✔️ Trang Chính Thức ${brand}.COM | Link Mới 2026`,
+    `${brand} - ${brand}.COM Trang Chủ Đăng Nhập Uy Tín 2026`
+  ];
+  const h1Pick = h1Patterns[variationSeed % h1Patterns.length];
+
+  const sapoOpenings = [
+    `${brand} là nhà cái uy tín hàng đầu`,
+    `${brand} là sân chơi giải trí trực tuyến`,
+    `${brand} là cổng game đổi thưởng`,
+    `${brand} là thương hiệu cá cược trực tuyến`,
+    `${brand} được biết đến là nhà cái uy tín`,
+    `${brand} mang đến sân chơi cá cược chuyên nghiệp`
+  ];
+
+  // === SECTION INTENT - mix format type ===
   const sectionIntents = {
     1: {
       title: 'Section 1: Quy mô & Pháp lý',
-      intent: `Mục đích section: ĐI SÂU vào số liệu, giấy phép, công nghệ - KHÔNG giới thiệu brand chung chung (sapo đã làm rồi).
-H2 GỢI Ý (Gemini tự sáng tạo, đừng dùng nguyên văn): "Hồ sơ pháp lý của ${brand}", "${brand} - Quy mô và hệ thống vận hành", "${brand} hoạt động dưới giấy phép quốc tế nào?", "Bên trong hệ thống ${brand}: Quy mô, pháp lý, công nghệ"
-NỘI DUNG:
-- 2-3 đoạn <p>, mỗi đoạn 50-70 từ
-- Đoạn 1: Giấy phép ${license}, tổ chức kiểm định, năm cấp phép
-- Đoạn 2: Quy mô (số thành viên, số provider game, số quốc gia phục vụ)
-- Đoạn 3 (optional): Công nghệ hạ tầng, server, hệ thống bảo mật
-- KHÔNG viết câu "${brand} là nhà cái uy tín..." (sapo đã có)
-- KHÔNG nhắc "${domain}" trong section này
-- "${brand}" chỉ xuất hiện 2-3 lần`
+      intent: `MỤC ĐÍCH: Đi sâu vào pháp lý, số liệu, công nghệ. KHÔNG lặp giới thiệu (sapo đã làm).
+GÓC KỂ (random mỗi lần): ${overviewAngle}
+
+H2: TỰ SÁNG TẠO, KHÔNG dùng "Tổng quan về ${brand}". Gợi ý: "Hồ sơ pháp lý của ${brand}", "Bên trong hệ thống ${brand}", "Hành trình ${brand} ${year}→hiện nay", "Dấu ấn ${brand} tại ${market}"...
+
+FORMAT: 2-3 đoạn <p> ngắn (mỗi đoạn 50-70 từ)
+NỘI DUNG gợi ý (tùy góc kể mà chọn data phù hợp):
+- Giấy phép ${license}, tổ chức kiểm định (GLI/BMM/iTechLabs)
+- Quy mô (số thành viên, provider, quốc gia)
+- Hạ tầng (server, SSL, xử lý)
+- Lịch sử (nếu góc "dòng thời gian")
+
+CẤM:
+- KHÔNG viết "${brand} là nhà cái uy tín..." (sapo đã có)
+- KHÔNG nhắc "${domain}"
+- "${brand}" tối đa 2 lần`
     },
+
     2: {
-      title: 'Section 2: Ưu điểm vượt trội',
-      intent: `Mục đích: Liệt kê 5 điểm mạnh dưới dạng TABLE so sánh.
-H2 GỢI Ý (Gemini sáng tạo, KHÔNG copy nguyên văn): "Vì sao ${brand} dẫn đầu thị trường?", "5 lý do thành viên chọn ${brand}", "Điểm khác biệt làm nên thương hiệu ${brand}", "${brand} - Những giá trị cốt lõi vượt trội"
-NỘI DUNG:
-- 1 đoạn intro 40-60 từ
-- BẮT BUỘC <table> 5 dòng (KHÔNG dùng H3 + đoạn):
+      title: `Section 2: Ưu điểm (${layout.sec2}, AI tự brainstorm)`,
+      intent: `MỤC ĐÍCH: AI TỰ BRAINSTORM ${advCount} ưu điểm độc đáo cho ${brand}. KHÔNG copy từ template chung.
+H2 GỢI Ý: "Vì sao ${brand} dẫn đầu thị trường?", "${advCount} lý do chọn ${brand}", "Điểm khác biệt làm nên ${brand}", "Thế mạnh nổi bật của ${brand}", "Chân dung người chơi yêu ${brand}"
+
+💡 HƯỚNG SUY NGHĨ (random mỗi lần - LÀM CƠ SỞ ĐỂ SÁNG TẠO):
+  - GÓC #1: ${advAngle1}
+  - GÓC #2: ${advAngle2}
+  → Kết hợp 2 góc này để tạo ${advCount} ưu điểm, mỗi ưu điểm có thông số cụ thể do AI tự biên (vd: "RTP 96.8%", "xử lý <2 giây", "15+ ngân hàng", "99.95% uptime")
+  → TẮT NHIÊN, tên ưu điểm PHẢI SÁNG TẠO, KHÔNG dùng cụm díễ ẤN
+
+❌ CẮM CỤM Từ RẬP KHUÔN (không dùng nguyên văn):
+- "Giao diện hiện đại", "Bảo mật cao", "CSKH 24/7", "Nạp rút nhanh", "Kho game đa dạng"
+→ PHẢI biến tấu: vd thay vì "CSKH 24/7" → "Đội ngũ tư vấn viên lành nghề phản hồi <30s qua 5 kênh"; thay vì "Bảo mật cao" → "Hạ tầng bảo mật kiểu ngân hàng PCI-DSS Level 1"
+
+FORMAT: ${layout.sec2 === 'table' ? `1 đoạn intro 40-60 từ + <table> 2 cột × ${advCount} dòng:
 <table>
-  <thead><tr><th>Yếu tố</th><th>Chi tiết</th></tr></thead>
+  <thead><tr><th>[Tự đặt tên cột 1, KHÔNG dùng "Yếu tố"]</th><th>[Tự đặt tên cột 2]</th></tr></thead>
   <tbody>
-    <tr><td><strong>[Tên ưu điểm Gemini tự đặt]</strong></td><td>[Mô tả 30-50 từ]</td></tr>
-    [4 dòng nữa]
+    <tr><td><strong>[Tên ưu điểm sáng tạo]</strong></td><td>[2-3 câu 35-55 từ, có thông số]</td></tr>
+    [${advCount-1} dòng nữa]
   </tbody>
-</table>
-- Gemini TỰ CHỌN 5 ưu điểm phù hợp (vd: bảo mật, tốc độ, giao diện, hỗ trợ, ưu đãi - nhưng có thể đặt tên khác như "Kiến trúc bảo mật đa lớp", "Hệ thống xử lý real-time")
-- KHÔNG dùng các cụm rập khuôn "Giao diện hiện đại thân thiện" - hãy sáng tạo`
+</table>` : layout.sec2 === 'compactlist' ? `1 đoạn intro 40-60 từ + <ul> ngắn (mỗi <li> ~25-35 từ):
+<ul>
+  <li><strong>[Tên ưu điểm]:</strong> [mô tả cụ thể 25-35 từ]</li>
+  [${advCount-1} li nữa]
+</ul>` : `1 đoạn intro 40-60 từ + ${advCount} cụm <h3>+<p>:
+<h3>[Tên ưu điểm sáng tạo]</h3>
+<p>[2-3 câu 40-60 từ, có thông số cụ thể]</p>`}
+
+LƯU Ý:
+- AI TỰ BIÊN tên ưu điểm + thông số (không bị ép pool), đảm bảo mỗi bài KHÁC NHAU
+- "${brand}" tối đa 2 lần trong section này`
     },
+
     3: {
-      title: 'Section 3: Kho game',
-      intent: `Mục đích: Trình bày các thể loại game dưới dạng TABLE.
-H2 GỢI Ý (Gemini sáng tạo): "${brand} - Hệ sinh thái giải trí đa dạng", "Khám phá kho game tại ${brand}", "Các sản phẩm giải trí nổi bật của ${brand}", "Thư viện game ${brand}: Đa dạng & hấp dẫn"
-NỘI DUNG:
-- 1 đoạn intro 40-60 từ
-- BẮT BUỘC <table> 6 dòng:
+      title: `Section 3: Kho game (${layout.sec3}, AI tự chọn provider + game)`,
+      intent: `MỤC ĐÍCH: Trình bày ${gameCount} thể loại game cho ${brand}. AI TỰ CHỌN provider + game cụ thể phù hợp, ${gameStyle}.
+H2 GỢI Ý: "${brand} - Hệ sinh thái giải trí đa dạng", "Khám phá kho game ${brand}", "Thư viện sản phẩm ${brand}", "Sảnh chơi nổi bật của ${brand}", "Tour kho game ${brand}"
+
+💡 ${gameCount} THỂ LOẠI CẦN TRÌNH BÀY (đã random):
+${gamePickedGenres.map((g,i) => `  ${i+1}. ${g}`).join('\n')}
+
+📖 STYLE TRÌNH BÀY: ${gameStyle}
+
+🔑 YÊU CẦU QUAN TRỌNG:
+- Mỗi thể loại, AI TỰ CHỌN 2-3 provider thật + 3-5 tên game cụ thể phu hợp (vd: Casino → Evolution/Pragmatic Live/Asia Gaming + Lightning Roulette, Crazy Time...; Slot → Pragmatic Play/PG Soft/JILI + Sweet Bonanza, Fortune Tiger...; Đá gà → SV388/AOG + Thomo Campuchia, cựa sắt...)
+- THÔNG SỐ do AI tự sinh (RTP %, min bet, số bàn, số game) NHƯNG phải HỢP LÝ và KHÁC NHAU mỗi bài
+
+FORMAT: ${layout.sec3 === 'table' ? `1 đoạn intro 40-60 từ + <table> 3 cột × ${gameCount} dòng:
 <table>
-  <thead><tr><th>Thể loại</th><th>Nhà phát triển</th><th>Điểm nổi bật</th></tr></thead>
+  <thead><tr><th>Thể loại</th><th>Provider</th><th>Game tiêu biểu</th></tr></thead>
   <tbody>
-    [6 dòng cho 6 thể loại: thể thao / casino / slot / bắn cá / đá gà / game bài & xổ số]
-    [Trong cột Provider phải có tên cụ thể: SBOBET, CMD368, Evolution, Sexy AI, Pragmatic Play, PG Soft, JILI, CQ9, Thomo, SV388...]
-    [Cột Điểm nổi bật: tỷ lệ kèo / RTP / Min bet / Số trận/ngày]
+    <tr><td><strong>[Tên thể loại]</strong></td><td>[2-3 provider]</td><td>[3-5 tên game]</td></tr>
+    [${gameCount-1} dòng nữa]
   </tbody>
-</table>`
+</table>` : `1 đoạn intro 40-60 từ + ${gameCount} cụm <h3>+<p>:
+<h3>[Tên thể loại, SÁNG TẠO không dùng nguyên tên hệ thống]</h3>
+<p>[2-3 câu 60-90 từ: provider + tên game cụ thể + đặc điểm + thông số do AI tự tạo]</p>`}
+
+LƯU Ý:
+- KHÔNG copy mô tả rập khuôn từ các site đối thủ (Jun88, MM88...)
+- Mỗi bài AI tự quyết định provider/game → 100 bài không trùng
+- "${brand}" tối đa 1 lần/mô tả`
     },
+
     4: {
-      title: 'Section 4: Hướng dẫn',
-      intent: `Mục đích: Liệt kê quy trình dùng TABLE.
-H2 GỢI Ý: "Hướng dẫn nhanh tham gia ${brand}", "4 bước trải nghiệm ${brand}", "${brand} - Quy trình đăng ký & giao dịch"
-NỘI DUNG:
-- 1 đoạn intro 30-50 từ
-- BẮT BUỘC <table> 4 dòng:
-<table>
-  <thead><tr><th>Quy trình</th><th>Các bước</th><th>Thời gian</th></tr></thead>
-  <tbody>
-    <tr><td><strong>Đăng ký tài khoản</strong></td><td>Bước 1: ... Bước 2: ... Bước 3: ...</td><td>~1 phút</td></tr>
-    [3 dòng nữa: Tải app / Nạp tiền / Rút tiền]
-  </tbody>
-</table>`
+      title: 'Section 4: Hướng dẫn (DÙNG H3 + OL/UL, KHÔNG TABLE)',
+      intent: `MỤC ĐÍCH: 4 quy trình dạng H3 + <ol>/<ul>, KHÔNG dùng table (đã có 2 table khác trong bài).
+H2 GỢI Ý: "Hướng dẫn nhanh tham gia ${brand}", "Quy trình đăng ký & giao dịch tại ${brand}", "4 bước trải nghiệm ${brand}"
+
+FORMAT: 1 đoạn intro 40-60 từ + 4 cụm H3 + <ol>:
+<h3>Cách đăng ký tài khoản</h3>
+<ol>
+  <li>[Bước 1: 10-20 từ]</li>
+  <li>[Bước 2: 10-20 từ]</li>
+  <li>[Bước 3: 10-20 từ]</li>
+</ol>
+
+4 H3:
+- Đăng ký tài khoản (3-4 bước)
+- Tải ứng dụng Mobile (2-3 bước)
+- Nạp tiền (3-4 bước)
+- Rút tiền (3-4 bước)
+
+LƯU Ý:
+- KHÔNG ghi "Thời gian: X phút" (cứng và dễ trùng) - chỉ đề cập trong đoạn intro nếu cần
+- Mỗi bước cụ thể, có thể nhắc nút bấm (vd "Click nút 'Đăng ký' ở góc phải")`
     },
+
     5: {
-      title: 'Section 5: Khuyến mãi',
-      intent: `Mục đích: TABLE liệt kê các chương trình KM.
-H2 GỢI Ý: "${brand} - Loạt ưu đãi không thể bỏ qua", "Chính sách thưởng tại ${brand}", "Ưu đãi thành viên ${brand}"
-NỘI DUNG:
-- 1 đoạn intro 40-60 từ
-- BẮT BUỘC <table> 5 dòng:
+      title: `Section 5: Khuyến mãi (${layout.sec5}, AI tự brainstorm KM)`,
+      intent: `MỤC ĐÍCH: AI TỰ BRAINSTORM ${promoCount} chương trình khuyến mãi đa dạng cho ${brand}. KHÔNG copy mautemplate.
+H2 GỢI Ý: "${brand} - Loạt ưu đãi không thể bỏ qua", "Chính sách thưởng hấp dẫn", "Khuyến mãi ${brand}", "Hệ thống ưu đãi thành viên", "Sân chơi thưởng ${brand}"
+
+💡 CHỦ ĐỀ ƯU TIÊN (random mỗi lần - LÀM CƠ SỞ): tổ chức KM theo ${promoTheme}
+→ DỰa vào chủ đề này, AI TỰ NGHĨ RA ${promoCount} chương trình KHÁC BIỆT (không trùng ý):
+  - Mỗi KM có tên sáng tạo (KHÔNG dùng nguyên văn "Thưởng tân thủ", "Hoa hồng giới thiệu")
+  - Có con số cụ thể (% , VĐ, triệu...) do AI tự biên, KHÁC NHAU mỗi bài
+  - Có điều kiện ngắn gọn (vd: "cược đủ 5 vòng", "nạp tối thiểu X", "VIP Silver trở lên")
+
+FORMAT: ${layout.sec5 === 'table' ? `1 đoạn intro 40-60 từ + <table> 2 cột × ${promoCount} dòng:
 <table>
-  <thead><tr><th>Chương trình</th><th>Nội dung</th><th>Đối tượng</th></tr></thead>
+  <thead><tr><th>Chương trình</th><th>Chi tiết ưu đãi</th></tr></thead>
   <tbody>
-    <tr><td><strong>Thưởng tân thủ</strong></td><td>Tặng ${bonus} hoặc 100% nạp đầu</td><td>Thành viên mới</td></tr>
-    [4 dòng nữa: Hoàn trả / Giới thiệu / VIP / Sự kiện theo mùa]
+    <tr><td><strong>[Tên KM sáng tạo]</strong></td><td>[Chi tiết 25-45 từ với con số cụ thể]</td></tr>
+    [${promoCount-1} dòng nữa]
   </tbody>
-</table>`
+</table>` : `1 đoạn intro 40-60 từ + ${promoCount} cụm <h3>+<p>:
+<h3>[Tên KM sáng tạo]</h3>
+<p>[2 câu 35-55 từ với con số cụ thể + điều kiện ngắn]</p>`}
+
+LƯU Ý:
+- KHÔNG dùng cột "Đối tượng" / "Thời gian" (cứng & dễ trùng)
+- Tên KM đa dạng: vd thay vì "Thưởng tân thủ" → "Khai trương hành trình cùng ${brand}"; thay "Cashback" → "Hoàn tiền vippass cuối tuần"
+- ${promoCount} chương trình PHẢI KHÁC CƠ CHẾ (không đều là cashback hoặc đều là hoa hồng)`
     },
+
     6: {
       title: 'Section 6: FAQ',
-      intent: `Mục đích: 6 câu hỏi thường gặp, dạng H3 + đoạn trả lời ngắn.
-H2 GỢI Ý: "Câu hỏi thường gặp về ${brand}", "Giải đáp thắc mắc khi tham gia ${brand}", "${brand} Q&A - Những điều cần biết"
-NỘI DUNG:
-- 6 <h3> câu hỏi + 1 <p> trả lời 40-70 từ mỗi câu
-- Câu hỏi đa dạng (Gemini tự chọn 6 trong số): brand là gì / có uy tín không / lừa đảo / link bị chặn / đăng ký mất bao lâu / có app không / nạp rút giới hạn / có bị bắt không / hỗ trợ qua kênh nào / điều kiện rút tiền
-- Câu trả lời tự nhiên, không robotic`
+      intent: `MỤC ĐÍCH: 5-6 câu hỏi thường gặp, AI TỰ CHỌN nhiều góc khác nhau.
+H2 GỢI Ý: "Câu hỏi thường gặp về ${brand}", "Giải đáp nhanh khi tham gia ${brand}", "${brand} Q&A", "Hỏi - Đáp trước khi chơi"
+
+💡 ƯU TIÊN CHỦ ĐỀ (random mỗi lần): ${faqFocus}
+
+FORMAT: 5-6 cụm <h3>+<p>, mỗi trả lời 40-70 từ
+
+Câu hỏi gợi ý (AI tự chọn 5-6 + biến tấu theo focus trên):
+- ${brand} có uy tín không?
+- Tham gia ${brand} có vi phạm pháp luật?
+- Vì sao link vào ${brand} bị chặn?
+- Đăng ký ${brand} mất bao lâu?
+- App ${brand} có cho iOS/Android?
+- Nạp/rút có giới hạn?
+- Liên hệ hỗ trợ ${brand}?
+- Điều kiện rút tiền?
+- Có nhận cryptocurrency?
+- Có chơi được bằng VPN?
+
+Trả lời tự nhiên, KHÔNG robotic, có ví dụ cụ thể khi cần.`
     },
+
     7: {
       title: 'Section 7: Kết',
-      intent: `Mục đích: Tóm tắt + CTA.
-H2 GỢI Ý: "Lời kết", "Vì sao ${brand} đáng để trải nghiệm", "${brand} - Lựa chọn đáng tin cậy năm ${year}"
-NỘI DUNG:
-- 2 đoạn <p>, tổng 100-140 từ
-- Đoạn 1: Tóm tắt giá trị (KHÔNG lặp nguyên văn từ section trên)
-- Đoạn 2: CTA mời đăng ký + bonus ${bonus}
-- "${domain}" CHỈ nhắc 1 lần trong CTA cuối cùng`
+      intent: `MỤC ĐÍCH: Tóm tắt giá trị + CTA.
+H2 GỢI Ý: "Lời kết", "Vì sao ${brand} đáng trải nghiệm", "${brand} - Lựa chọn ${new Date().getFullYear()}", "Sẵn sàng khám phá ${brand}?"
+
+💡 PHONG CÁCH CTA (random mỗi lần): ${ctaTone}
+
+FORMAT: 2 đoạn <p>, tổng 100-130 từ
+- Đoạn 1: Tóm tắt (KHÔNG lặp y nguyên các section trên - paraphrase lại)
+- Đoạn 2: CTA theo phong cách ${ctaTone}, nhắc bonus ${bonus}, nhắc "${domain}" CHÍNH XÁC 1 lần`
     }
   };
 
+  // Build section instructions
   const sectionInstructions = sections.map(n => {
     const s = sectionIntents[n];
     return `=== ${s.title} ===\n${s.intent}`;
   }).join('\n\n');
 
-  return `Bạn là content writer chuyên ngành nhà cái VN, am hiểu cách top brand (Jun88, MM88, FUN88, 789BET, OK9) tổ chức content homepage để rank Top 1.
+  return `Bạn là content writer chuyên ngành nhà cái VN, đã viết content cho top brand (Jun88, MM88, FUN88, 789BET).
 
 NHIỆM VỤ: Viết FULL HOMEPAGE CONTENT cho "${brand}" (${domain}).
 
 THÔNG TIN:
-- Tên: ${brand}
-- Domain: ${domain}
-- Năm: ${year}
-- Thị trường: ${market}
-- Bonus tân thủ: ${bonus}
-- Giấy phép: ${license}
-- Độ dài mục tiêu: ${depthMap[depth]}
+- Tên: ${brand} | Domain: ${domain} | Năm: ${year} | Thị trường: ${market}
+- Bonus tân thủ: ${bonus} | Giấy phép: ${license}
+- Độ dài: ${depthMap[depth]}
 - Tone: ${toneMap[tone]}
 
-🎲 SEED UNIQUE LẦN NÀY: ${variationSeed}
-(Mỗi seed khác phải cho ra heading khác, cách diễn đạt khác, ví dụ khác)
+🎲 SEED LẦN NÀY: ${variationSeed}
 
-⚡ 7 QUY TẮC VÀNG:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ BẮT BUỘC: ĐẦU CONTENT PHẢI CÓ <h1> + SAPO 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+OUTPUT MỞ ĐẦU PHẢI THEO THỨ TỰ:
+
+<h1>${h1Pick}</h1>
+<p>[SAPO 120-160 từ. BẮT BUỘC mở đầu bằng "${sapoOpenings[variationSeed%sapoOpenings.length]}...". Sapo phải có: (1) Câu định nghĩa brand, (2) Liệt kê 4-5 sản phẩm cụ thể (casino, thể thao, slot/nổ hũ, bắn cá, xổ số), (3) USP ngắn (giao dịch nhanh / bảo mật / hỗ trợ 24/7), (4) Có thể có CTA nhẹ về ${bonus}. CẤM mở đầu bằng "Chào mừng", "Khám phá", "Trải nghiệm".]</p>
+
+Sau đó mới đến các section đã chọn ở dưới.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚡ 8 QUY TẮC VÀNG
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 1. **HEADING UNIQUE - QUAN TRỌNG NHẤT**:
-   - TUYỆT ĐỐI KHÔNG dùng các H2 rập khuôn: "Tổng quan về ${brand}", "Vì sao chọn ${brand}", "Kho game đa dạng tại ${brand}", "Hướng dẫn tham gia ${brand}", "Chương trình khuyến mãi tại ${brand}", "Câu hỏi thường gặp về ${brand}", "Lời kết"
-   - Mỗi lần generate phải SÁNG TẠO H2 mới dựa trên gợi ý trong section instruction
-   - Có thể đặt tên sáng tạo như "${brand} - Hồ sơ thương hiệu", "5 lý do ${brand} thống lĩnh thị trường", "Bước vào thế giới ${brand}: Hướng dẫn nhanh", "${brand} Q&A"...
-   - H3 trong table headers (Yếu tố, Chi tiết, Thể loại, Provider...) cũng SÁNG TẠO theo seed
+   - TUYỆT ĐỐI KHÔNG dùng H2 rập khuôn: "Tổng quan về ${brand}", "Vì sao chọn ${brand}", "Kho game đa dạng tại ${brand}", "Hướng dẫn tham gia ${brand}", "Chương trình khuyến mãi tại ${brand}", "Câu hỏi thường gặp về ${brand}", "Lời kết"
+   - Mỗi lần generate SÁNG TẠO H2 mới (xem H2 GỢI Ý trong từng section)
 
-2. **SECTION 1 - KHÔNG LẶP VỚI SAPO**:
-   - Sapo đã giới thiệu brand là gì → Section 1 PHẢI ĐI SÂU vào số liệu/pháp lý/công nghệ
-   - KHÔNG viết câu "${brand} là nhà cái uy tín..." nữa
-   - Tập trung: giấy phép cụ thể, năm cấp, số thành viên, số provider, công nghệ
-   - NGẮN GỌN: 2-3 đoạn x 50-70 từ (KHÔNG 4 đoạn 100 từ)
+2. **CHỈ DÙNG TABLE Ở 2 SECTION**: Section 2 (Ưu điểm) + Section 5 (Khuyến mãi).
+   - Section 3 (Kho game) → dùng <h3> + <p> blocks (KHÔNG TABLE - tránh trùng các site đối thủ vì table game dễ giống nhau)
+   - Section 4 (Hướng dẫn) → dùng <h3> + <ol> step-by-step (KHÔNG TABLE)
+   - 2 table còn lại CỘT 2: Yếu tố/Chi tiết và Chương trình/Chi tiết ưu đãi - KHÔNG có cột "Thời gian" / "Đối tượng" cứng
 
-3. **KEYWORD STUFFING - TRÁNH TUYỆT ĐỐI**:
+3. **SECTION 1 KHÔNG LẶP VỚI SAPO**:
+   - Sapo đã định nghĩa brand → Section 1 PHẢI ĐI SÂU vào pháp lý, số liệu, công nghệ
+   - KHÔNG viết câu "${brand} là nhà cái uy tín..."
+   - NGẮN: 2-3 đoạn × 50-70 từ
+
+4. **KEYWORD STUFFING - TRÁNH**:
    - "${brand}" tối đa 2-3 lần/section (trừ H2/H3)
-   - "${domain}" CHỈ 1 lần ở CTA section 7
-   - Thay bằng: "nền tảng", "thương hiệu", "hệ thống", "trang", "đơn vị"
+   - "${domain}" CHỈ 1 lần ở CTA Section 7
+   - Thay bằng: "nền tảng", "thương hiệu", "hệ thống", "đơn vị"
 
-4. **TABLE FORMAT - BẮT BUỘC cho sec 2,3,4,5**:
-   - KHÔNG dùng H3 + đoạn dài cho phần liệt kê
-   - Mỗi cell ngắn 8-30 từ - súc tích, không lê thê
+5. **TRÁNH NỘI DUNG GIỐNG TOP SITES**:
+   - Mô tả game KHÔNG copy-paste pattern (vd "Casino với bàn live mượt mà 24/7" - quá phổ biến)
+   - Hãy CỤ THỂ HÓA: "Sảnh casino Evolution Gaming với 80+ bàn live blackjack, baccarat, sicbo - min bet 10K, dealer Việt Nam"
+   - Mỗi ưu điểm có thông số cụ thể (số liệu, tốc độ, %, tên đối tác)
 
-5. **VĂN PHONG NGẮN GỌN**:
+6. **VĂN PHONG NGẮN GỌN**:
    - Câu 10-20 từ
    - Đoạn 50-80 từ
-   - Vào thẳng vấn đề, không "có thể nói rằng", "không thể phủ nhận"
+   - Vào thẳng vấn đề
 
-6. **KHÔNG LẶP IDEA giữa sections**:
-   - Section 1 nói pháp lý/quy mô → Section 2 KHÔNG lặp
-   - Section 2 nói ưu điểm → Section 5 KHÔNG dùng lại pillar "khuyến mãi đa dạng"
-   - Mỗi câu mang thông tin MỚI
-
-7. **PROVIDER NAMES CỤ THỂ** (Section 3):
+7. **PROVIDER NAMES THẬT** (Section 3):
    - Casino: Evolution, Sexy AI, Asia Gaming, Dream Gaming, MG Live
    - Slot: Pragmatic Play, PG Soft, JILI, CQ9, Habanero
    - Thể thao: SBOBET, CMD368, BTI, IM Sports
    - Bắn cá: JILI Fishing, CQ9 Fishing
    - Đá gà: Thomo SV388, AOG
 
-CẤU TRÚC OUTPUT (theo section đã chọn):
+8. **KHÔNG LẶP IDEA giữa sections**:
+   - Section 1 nói pháp lý/công nghệ → Section 2 KHÔNG lặp
+   - Section 2 nói ưu điểm "Khuyến mãi" → Section 5 nói khác đi
+   - Mỗi câu mang thông tin MỚI
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 CẤU TRÚC OUTPUT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ${sectionInstructions}
 
-🔧 FORMAT HTML:
-- <h2>, <h3>, <p>, <strong>
-- <table>, <thead>, <tbody>, <tr>, <th>, <td> (BẮT BUỘC sec 2,3,4,5)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧 FORMAT HTML CHUẨN WORDPRESS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- <h1> (CHỈ 1 lần ở đầu), <h2>, <h3>, <p>, <strong>
+- <table>, <thead>, <tbody>, <tr>, <th>, <td> CHỈ trong Section 2 và Section 5
+- <ol>, <ul>, <li> trong Section 4 (Hướng dẫn) và Section 6 (FAQ nếu cần)
 - KHÔNG <div>, <span>, class, id, style
-- KHÔNG markdown
+- KHÔNG markdown (**, ##)
 
 ⚠️ OUTPUT:
-- Trả về TRỰC TIẾP HTML thuần, bắt đầu <h2>, kết thúc </p> hoặc </table>
+- Bắt đầu NGAY bằng <h1>${h1Pick}</h1>
+- Tiếp theo là <p> sapo
+- Sau đó các section đã chọn
 - KHÔNG JSON, KHÔNG \`\`\`html wrapper
-- KHÔNG câu mở đầu "Đây là content..."
+- KHÔNG câu mở đầu như "Đây là content..."
 
-BẮT ĐẦU NGAY VỚI <h2>:`;
+BẮT ĐẦU NGAY:`;
+}
+
+// ===== v5.9.12 DEBUG LOGGING =====
+// Log helper: push to console + UI log panel
+function _fcLog(stage, msg, level){
+  level = level || 'info';
+  const t = new Date().toLocaleTimeString('vi-VN', {hour12:false}) + '.' + String(Date.now()%1000).padStart(3,'0');
+  const prefix = `[FC ${stage}]`;
+  if(level==='error') console.error(prefix, msg);
+  else if(level==='warn') console.warn(prefix, msg);
+  else console.log(prefix, msg);
+
+  const panel = document.getElementById('fcLogPanel');
+  if(panel){
+    const colors = { info:'#86efac', warn:'#fbbf24', error:'#f87171', success:'#34d399', step:'#60a5fa' };
+    const icons = { info:'○', warn:'⚠', error:'❌', success:'✅', step:'▶' };
+    const line = document.createElement('div');
+    line.style.cssText = `color:${colors[level]||'#e2e8f0'};padding:2px 0;border-bottom:1px solid #1e293b;font-family:monospace;font-size:11px;line-height:1.4`;
+    const safeMsg = String(msg).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    line.innerHTML = `<span style="color:#64748b">${t}</span> ${icons[level]||'○'} <strong style="color:#facc15">${stage}</strong>: ${safeMsg}`;
+    panel.appendChild(line);
+    panel.scrollTop = panel.scrollHeight;
+  }
+}
+function _fcClearLog(){
+  const panel = document.getElementById('fcLogPanel');
+  if(panel) panel.innerHTML = '';
 }
 
 async function generateFullContent(){
+  _fcClearLog();
+  _fcLog('INIT', '=== BẮT ĐẦU QUÁ TRÌNH GENERATE ===', 'step');
+  const _tStart = performance.now();
+  const _tMarks = { start: _tStart };
+
   const key = localStorage.getItem(GEMINI_LS_KEY) || document.getElementById('geminiKey').value.trim();
-  if(!key){alert('⚠ Cần nhập Gemini API key ở tab AI Content trước.');switchPage('ai');return}
+  if(!key){
+    _fcLog('INIT', 'Thiếu API key, chuyển sang tab AI', 'error');
+    alert('⚠ Cần nhập Gemini API key ở tab AI Content trước.');
+    switchPage('ai');
+    return;
+  }
+  _fcLog('INIT', `API key OK (length=${key.length}, prefix=${key.substring(0,8)}...)`, 'info');
 
   const model = localStorage.getItem(GEMINI_MODEL_LS) || 'gemini-2.0-flash';
+  _fcLog('INIT', `Model: ${model}`, 'info');
+
   const btn = document.getElementById('fcGenBtn');
   const bar = document.getElementById('fcProgressBar');
   const result = document.getElementById('fcResult');
   const statusPill = document.getElementById('fcStatus');
 
   // Check at least 1 section
-  let anyChecked = false;
-  for(let i=1;i<=7;i++) if(document.getElementById('sec'+i).checked){anyChecked=true;break}
-  if(!anyChecked){alert('⚠ Chọn ít nhất 1 section.');return}
+  let checkedSections = [];
+  for(let i=1;i<=7;i++) if(document.getElementById('sec'+i).checked) checkedSections.push(i);
+  if(checkedSections.length===0){
+    _fcLog('INIT', 'Chưa tick section nào', 'error');
+    alert('⚠ Chọn ít nhất 1 section.');
+    return;
+  }
+  _fcLog('INIT', `Sections đã chọn: [${checkedSections.join(', ')}] (${checkedSections.length} section)`, 'info');
+
+  // Read other inputs for log
+  const _brand = document.getElementById('fcBrandName').value.trim() || 'Brand';
+  const _depth = document.getElementById('fcDepth').value;
+  const _tone = document.getElementById('fcTone').value;
+  _fcLog('INIT', `Brand=${_brand}, Depth=${_depth}, Tone=${_tone}`, 'info');
 
   btn.disabled = true;
   btn.innerHTML = '⏳ Đang generate (~30-60s)...';
   statusPill.textContent = '⏳ Generating...';
   statusPill.className = 'pill';
-  bar.style.width = '20%';
+  bar.style.width = '10%';
 
-  const prompt = buildFullContentPrompt();
+  // ===== STEP 1: BUILD PROMPT =====
+  _fcLog('STEP 1/4', 'Build prompt bắt đầu...', 'step');
+  _tMarks.buildStart = performance.now();
+  let prompt;
+  try {
+    prompt = buildFullContentPrompt();
+    _tMarks.buildEnd = performance.now();
+    const buildMs = (_tMarks.buildEnd - _tMarks.buildStart).toFixed(1);
+    _fcLog('STEP 1/4', `✅ Build prompt xong (${buildMs}ms, ${prompt.length} chars)`, 'success');
+    bar.style.width = '20%';
+  } catch(e){
+    _fcLog('STEP 1/4', `Lỗi build prompt: ${e.message}`, 'error');
+    result.innerHTML = `<div class="info-box red"><span class="ico">❌</span><div><strong>Lỗi build prompt:</strong> ${e.message}</div></div>`;
+    statusPill.textContent = '❌ Lỗi';
+    statusPill.className = 'pill err';
+    btn.disabled = false;
+    btn.innerHTML = '🚀 Generate Full Content với Gemini';
+    return;
+  }
 
   try {
-    bar.style.width = '40%';
+    // ===== STEP 2: CALL API =====
+    _fcLog('STEP 2/4', `Gọi Gemini API endpoint: models/${model}:generateContent`, 'step');
+    _fcLog('STEP 2/4', `Config: temp=0.9, topP=0.95, maxTokens=8192`, 'info');
+    _tMarks.apiStart = performance.now();
+    bar.style.width = '30%';
+
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -2888,10 +3212,16 @@ async function generateFullContent(){
       })
     });
 
-    bar.style.width = '80%';
+    _tMarks.apiEnd = performance.now();
+    const apiMs = ((_tMarks.apiEnd - _tMarks.apiStart)/1000).toFixed(2);
+    _fcLog('STEP 2/4', `API trả về sau ${apiMs}s, status=${r.status}`, r.ok ? 'success' : 'warn');
+    bar.style.width = '70%';
+
     if(!r.ok){
+      _fcLog('STEP 2/4', `❌ HTTP ${r.status} - đang đọc body lỗi...`, 'error');
       const errBody = await r.json().catch(()=>({error:{message:r.statusText}}));
       const errMsg = errBody.error?.message || r.statusText;
+      _fcLog('STEP 2/4', `Error message: ${errMsg}`, 'error');
       if(r.status===429){
         result.innerHTML = renderError429(errBody, errMsg);
       } else {
@@ -2905,45 +3235,107 @@ async function generateFullContent(){
       return;
     }
 
+    // ===== STEP 3: PARSE RESPONSE =====
+    _fcLog('STEP 3/4', 'Đọc JSON response từ Gemini...', 'step');
+    _tMarks.parseStart = performance.now();
     const data = await r.json();
+    const finishReason = data.candidates?.[0]?.finishReason || 'unknown';
+    const usageMeta = data.usageMetadata || {};
+    _fcLog('STEP 3/4', `finishReason=${finishReason}, promptTokens=${usageMeta.promptTokenCount||'?'}, outputTokens=${usageMeta.candidatesTokenCount||'?'}, totalTokens=${usageMeta.totalTokenCount||'?'}`, 'info');
+
+    if(finishReason === 'MAX_TOKENS'){
+      _fcLog('STEP 3/4', '⚠ Output bị cắt vì chạm maxOutputTokens. Có thể bài bị thiếu cuối.', 'warn');
+    } else if(finishReason === 'SAFETY'){
+      _fcLog('STEP 3/4', '❌ Gemini chặn vì safety filter', 'error');
+      throw new Error('Gemini chặn vì safety filter (Section content vi phạm chính sách). Thử model khác hoặc chỉnh tone.');
+    }
+
     let text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    if(!text) throw new Error('AI trả về rỗng');
+    _fcLog('STEP 3/4', `Raw text length: ${text.length} chars`, 'info');
+    if(!text){
+      _fcLog('STEP 3/4', 'Response rỗng (không có parts.text)', 'error');
+      console.log('[FC] Full response data:', data);
+      throw new Error('AI trả về rỗng. Xem console để biết chi tiết.');
+    }
 
     // Clean output: remove markdown code fence, JSON wrapper if accidentally present
+    const _origLen = text.length;
     text = text.trim();
     // Remove ```html / ``` fence
+    const hadFence = /^```/.test(text);
     text = text.replace(/^```(?:html|json)?\s*\n?/i, '').replace(/\n?```\s*$/, '');
+    if(hadFence) _fcLog('STEP 3/4', 'Cleanup: đã strip markdown code fence ```', 'info');
+
     // If wrapped in JSON (legacy), try extract html field
     if(text.startsWith('{')){
+      _fcLog('STEP 3/4', 'Text bắt đầu bằng {, thử parse JSON wrapper...', 'warn');
       try {
         const j = JSON.parse(text);
-        if(j.html) text = j.html;
+        if(j.html){
+          text = j.html;
+          _fcLog('STEP 3/4', `Đã extract field "html" từ JSON, length mới=${text.length}`, 'info');
+        }
       } catch(e){
-        // JSON broken (truncated) - try to extract content between first <h2> and last </p>/</ul>/</h2>/</ol>
-        const startIdx = text.indexOf('<h2');
+        _fcLog('STEP 3/4', `JSON parse fail (${e.message}), fallback extract giữa <h1>/<h2> và closing tag`, 'warn');
+        let startIdx = text.indexOf('<h1');
+        if(startIdx < 0) startIdx = text.indexOf('<h2');
         if(startIdx >= 0){
           let endIdx = -1;
-          ['</p>','</ul>','</ol>','</h2>','</h3>'].forEach(tag=>{
+          ['</p>','</ul>','</ol>','</table>','</h2>','</h3>'].forEach(tag=>{
             const i = text.lastIndexOf(tag);
             if(i > endIdx) endIdx = i + tag.length;
           });
-          if(endIdx > startIdx) text = text.substring(startIdx, endIdx);
+          if(endIdx > startIdx){
+            text = text.substring(startIdx, endIdx);
+            _fcLog('STEP 3/4', `Fallback extract: [${startIdx}..${endIdx}], length=${text.length}`, 'info');
+          }
         }
       }
     }
 
-    // Trim leading prose like "Đây là content..." before first <h2>
-    const h2Start = text.indexOf('<h2');
-    if(h2Start > 0 && h2Start < 200) text = text.substring(h2Start);
+    // Trim leading prose before first <h1> or <h2>
+    let firstHeading = text.indexOf('<h1');
+    if(firstHeading < 0) firstHeading = text.indexOf('<h2');
+    if(firstHeading > 0 && firstHeading < 200){
+      _fcLog('STEP 3/4', `Trim ${firstHeading} ký tự prose trước <h1>/<h2>`, 'info');
+      text = text.substring(firstHeading);
+    }
 
-    if(!text || text.length < 50) throw new Error('Content quá ngắn hoặc rỗng');
+    if(!text || text.length < 50){
+      _fcLog('STEP 3/4', `❌ Content quá ngắn sau cleanup (${text.length} chars)`, 'error');
+      throw new Error('Content quá ngắn hoặc rỗng (sau cleanup chỉ còn ' + text.length + ' chars)');
+    }
+
+    _tMarks.parseEnd = performance.now();
+    const parseMs = ((_tMarks.parseEnd - _tMarks.parseStart)*1000).toFixed(0)/1000;
+    _fcLog('STEP 3/4', `✅ Parse + cleanup xong (${parseMs.toFixed(2)}ms). Raw=${_origLen}→Final=${text.length} chars`, 'success');
+    bar.style.width = '85%';
+
+    // ===== STEP 4: RENDER =====
+    _fcLog('STEP 4/4', 'Render HTML lên preview...', 'step');
+    _tMarks.renderStart = performance.now();
+
+    // Count tags for debug
+    const _h2Count = (text.match(/<h2/g)||[]).length;
+    const _h3Count = (text.match(/<h3/g)||[]).length;
+    const _pCount = (text.match(/<p[ >]/g)||[]).length;
+    const _tableCount = (text.match(/<table/g)||[]).length;
+    _fcLog('STEP 4/4', `Tags: ${_h2Count} <h2>, ${_h3Count} <h3>, ${_pCount} <p>, ${_tableCount} <table>`, 'info');
+
+    renderFullContent({html: text});
+    _tMarks.renderEnd = performance.now();
+    const renderMs = (_tMarks.renderEnd - _tMarks.renderStart).toFixed(1);
+    _fcLog('STEP 4/4', `✅ Render xong (${renderMs}ms)`, 'success');
 
     bar.style.width = '100%';
-    renderFullContent({html: text});
-    statusPill.textContent = '✅ Hoàn tất';
+    const totalSec = ((performance.now() - _tStart)/1000).toFixed(2);
+    _fcLog('DONE', `🎉 HOÀN TẤT sau ${totalSec}s | API=${((_tMarks.apiEnd-_tMarks.apiStart)/1000).toFixed(2)}s | Parse=${(_tMarks.parseEnd-_tMarks.parseStart).toFixed(0)}ms | Render=${renderMs}ms`, 'success');
+    statusPill.textContent = `✅ Hoàn tất (${totalSec}s)`;
     statusPill.className = 'pill ok';
   } catch(e){
-    result.innerHTML = `<div class="info-box red"><span class="ico">❌</span><div><strong>Lỗi:</strong> ${e.message}</div></div>`;
+    _fcLog('ERROR', `❌ Exception: ${e.message}`, 'error');
+    console.error('[FC] Full stack:', e);
+    result.innerHTML = `<div class="info-box red"><span class="ico">❌</span><div><strong>Lỗi:</strong> ${e.message}<br><br><em>Xem log chi tiết ở khung Console Log bên dưới và F12 Console.</em></div></div>`;
     statusPill.textContent = '❌ Lỗi';
     statusPill.className = 'pill err';
   }
@@ -2983,6 +3375,8 @@ function switchFcTab(t){
   if(t==='preview'){
     // Inject table CSS for nice preview (table will be styled by user's WP theme when paste)
     const previewCss = `<style>
+      .fc-preview h1{font-size:1.9em;margin:0.6em 0 0.4em;color:#0f172a;font-weight:800;line-height:1.3}
+      .fc-preview h1+p{font-size:1.05em;color:#475569;border-left:3px solid #c026d3;padding:8px 14px;background:#fdf4ff;border-radius:4px;margin-bottom:1.5em}
       .fc-preview h2{font-size:1.6em;margin:1.4em 0 0.6em;color:#1f2937;border-bottom:2px solid #e5e7eb;padding-bottom:0.3em}
       .fc-preview h3{font-size:1.25em;margin:1.2em 0 0.5em;color:#374151}
       .fc-preview p{margin:0.8em 0;color:#374151}
@@ -3097,6 +3491,17 @@ async function generateSectionImages(){
   gallery.innerHTML = '';
   bar.style.width = '5%';
 
+  // Get logo (uploaded file OR URL)
+  btn.innerHTML = '\u23f3 \u0110ang chu\u1ea9n b\u1ecb logo...';
+  const logoData = await getLogoData();
+  if(!logoData && (document.getElementById('fcLogoUrl').value.trim() || document.getElementById('fcLogoFile').files.length)){
+    gallery.innerHTML = `<div style="grid-column:1/-1;padding:10px;background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;font-size:12.5px;color:#92400e">\u26a0\ufe0f Kh\u00f4ng t\u1ea3i \u0111\u01b0\u1ee3c logo (CORS ho\u1eb7c file l\u1ed7i). Ti\u1ebfp t\u1ee5c KH\u00d4NG c\u00f3 logo.</div>`;
+  }
+
+  // Pick branded sections (3 out of 7) for caption variation
+  const brandedSecIds = pickBrandedSections(checked);
+  console.log('Branded sections (will contain brand in caption):', brandedSecIds);
+
   let done = 0, failed = 0;
   const total = checked.length;
 
@@ -3107,13 +3512,19 @@ async function generateSectionImages(){
     gallery.insertAdjacentHTML('beforeend',
       `<div class="img-card" id="${placeholderId}" style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px">
         <div style="aspect-ratio:2/1;background:#f1f5f9;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:13px">\u23f3 Section ${secId}: \u0111ang t\u1ea1o...</div>
-        <div style="margin-top:8px;font-size:12.5px;font-weight:600">${spec.label}</div>
+        <div style="margin-top:8px;font-size:12.5px;font-weight:600">${spec.label}${logoData?' <span style=\"font-size:10px;color:#7c3aed\">\ud83c\udff7\ufe0f +logo</span>':''}</div>
       </div>`);
 
-    const fullPrompt = `Generate a horizontal banner image, 2:1 aspect ratio. ${stylePrompt} The illustration shows: ${spec.desc} Design suitable for a website content section about "${spec.label}" for an online entertainment platform. Pure illustration, no text overlay, no logo, no watermark.`;
+    // Build prompt - if logo provided, instruct AI to integrate
+    let fullPrompt;
+    if(logoData){
+      fullPrompt = `Generate a horizontal banner image, 2:1 aspect ratio, 800x400 pixels. ${stylePrompt} The main illustration shows: ${spec.desc}\n\nIMPORTANT - LOGO INTEGRATION: I have provided a logo image as the first input. Place this LOGO naturally in the generated image at a SMALL size (occupying only 10-15% of the image width). YOU choose the most contextually fitting position for each image (could be top-left, top-right, bottom-right, or as a subtle watermark - whichever blends best with the design). The logo should be CLEARLY VISIBLE but NOT dominate the composition. Preserve the original logo colors and details. Around the logo, ensure there is enough negative space so it doesn't clash with other design elements. Suitable for a website content section about "${spec.label}".`;
+    } else {
+      fullPrompt = `Generate a horizontal banner image, 2:1 aspect ratio. ${stylePrompt} The illustration shows: ${spec.desc} Design suitable for a website content section about "${spec.label}" for an online entertainment platform. Pure illustration, no text overlay, no logo, no watermark.`;
+    }
 
     try {
-      const imgBlob = await callGeminiImageAPI(fullPrompt, key);
+      const imgBlob = await callGeminiImageAPI(fullPrompt, key, logoData);
       if(!imgBlob) throw new Error('Empty image response');
 
       // Resize + compress
@@ -3123,15 +3534,32 @@ async function generateSectionImages(){
 
       generatedImageBlobs[secId] = {blob: resized, url, fname, label: spec.label};
 
+      // Generate caption + slug
+      const useBrandKw = brandedSecIds.includes(secId);
+      const cs = generateCaptionFor(secId, brand, useBrandKw);
+      const altText = cs.caption;
+      const slug = cs.slug;
+      const newFname = `homepage-${slug}.jpg`;
+
       // Update card
       const sizeKB = (resized.size / 1024).toFixed(1);
+      const logoTag = logoData ? ' <span style="font-size:10px;color:#7c3aed;background:#f3e8ff;padding:1px 6px;border-radius:4px">\ud83c\udff7\ufe0f logo</span>' : '';
+      const brandTag = useBrandKw ? ' <span style="font-size:10px;color:#16a34a;background:#dcfce7;padding:1px 6px;border-radius:4px">\ud83c\udff7\ufe0f brand</span>' : '';
+
+      // Update blob name in generatedImageBlobs
+      generatedImageBlobs[secId] = {blob: resized, url, fname: newFname, label: spec.label, alt: altText, slug: slug};
+
       document.getElementById(placeholderId).innerHTML = `
         <div style="position:relative;aspect-ratio:2/1;border-radius:6px;overflow:hidden;background:#000">
           <img src="${url}" style="width:100%;height:100%;object-fit:cover" />
         </div>
         <div style="margin-top:8px">
-          <div style="font-size:12.5px;font-weight:600;color:var(--text)">${spec.label}</div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:6px">800\u00d7400 \u00b7 ${sizeKB} KB \u00b7 JPG</div>
+          <div style="font-size:12.5px;font-weight:600;color:var(--text)">${spec.label}${logoTag}${brandTag}</div>
+          <div style="font-size:11px;color:var(--muted);margin:2px 0 6px">800\u00d7400 \u00b7 ${sizeKB} KB \u00b7 JPG</div>
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;padding:6px 8px;margin-bottom:6px;font-size:11px;line-height:1.5">
+            <div style="color:#64748b;margin-bottom:2px"><strong>Alt:</strong> <span onclick="copyText(this.textContent,event)" style="cursor:pointer;color:#1e293b" title="Click \u0111\u1ec3 copy">${altText}</span></div>
+            <div style="color:#64748b"><strong>Slug:</strong> <code onclick="copyText(this.textContent,event)" style="cursor:pointer;color:#7c3aed" title="Click \u0111\u1ec3 copy">${slug}</code></div>
+          </div>
           <div style="display:flex;gap:5px">
             <button class="small" onclick="downloadSectionImage(${secId})" style="padding:4px 10px;font-size:11px">\u2b07 T\u1ea3i</button>
             <button class="small ghost" onclick="regenSectionImage(${secId})" style="padding:4px 10px;font-size:11px">\u21bb Regen</button>
@@ -3162,16 +3590,270 @@ async function generateSectionImages(){
   setTimeout(()=>bar.style.width='0%', 1500);
 }
 
-async function callGeminiImageAPI(prompt, key){
-  // Get selected model (default to 2.5-flash-image which is GA)
+// Cache logo fetched - tránh fetch nhiều lần khi gen 7 ảnh
+let _cachedLogoData = null;
+let _cachedLogoUrl = '';
+
+async function fetchLogoAsBase64(url){
+  if(!url) return null;
+  if(url === _cachedLogoUrl && _cachedLogoData) return _cachedLogoData;
+
+  try {
+    const r = await fetch(url, {mode:'cors'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const blob = await r.blob();
+    const mime = blob.type || 'image/png';
+    // Convert blob to base64
+    const base64 = await new Promise((res, rej)=>{
+      const reader = new FileReader();
+      reader.onloadend = ()=>{
+        const result = reader.result;
+        const b64 = result.split(',')[1];
+        res(b64);
+      };
+      reader.onerror = rej;
+      reader.readAsDataURL(blob);
+    });
+    _cachedLogoUrl = url;
+    _cachedLogoData = {data: base64, mimeType: mime};
+    return _cachedLogoData;
+  } catch(e){
+    console.warn('Logo fetch failed:', e.message);
+    return null;
+  }
+}
+
+// ====================================================
+// LOGO UPLOAD + CAPTION/SLUG generator
+// ====================================================
+let _uploadedLogoData = null;  // {data, mimeType, fileName, size}
+
+function switchLogoSource(mode){
+  document.getElementById('logoUrlSource').style.display = mode==='url' ? 'block' : 'none';
+  document.getElementById('logoUploadSource').style.display = mode==='upload' ? 'block' : 'none';
+  document.getElementById('logoTabUrlBtn').className = mode==='url' ? 'small' : 'small ghost';
+  document.getElementById('logoTabUploadBtn').className = mode==='upload' ? 'small' : 'small ghost';
+  // Reset other source
+  if(mode==='url'){
+    document.getElementById('fcLogoFile').value = '';
+    _uploadedLogoData = null;
+  } else {
+    document.getElementById('fcLogoUrl').value = '';
+  }
+  // Reset preview if any
+  document.getElementById('logoPreviewBox').style.display = 'none';
+}
+
+function previewLogoFromUrl(){
+  const url = document.getElementById('fcLogoUrl').value.trim();
+  const box = document.getElementById('logoPreviewBox');
+  if(!url){ box.style.display = 'none'; return; }
+  // Quick preview by loading image directly (CORS may not allow fetch but display works)
+  document.getElementById('logoPreviewImg').src = url;
+  document.getElementById('logoPreviewName').textContent = url.split('/').pop() || 'logo';
+  document.getElementById('logoPreviewSize').textContent = 'URL nguồn ngoài';
+  box.style.display = 'block';
+}
+
+function previewLogoFromFile(){
+  const fileInput = document.getElementById('fcLogoFile');
+  const file = fileInput.files[0];
+  if(!file){ return; }
+
+  const sizeKB = (file.size / 1024).toFixed(1);
+  if(file.size > 2 * 1024 * 1024){
+    alert('⚠ Logo quá lớn (>2MB). Vui lòng nén nhỏ hơn.');
+    fileInput.value = '';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    const dataUrl = e.target.result;
+    const base64 = dataUrl.split(',')[1];
+    _uploadedLogoData = {
+      data: base64,
+      mimeType: file.type || 'image/png',
+      fileName: file.name,
+      size: sizeKB + ' KB'
+    };
+    document.getElementById('logoPreviewImg').src = dataUrl;
+    document.getElementById('logoPreviewName').textContent = file.name;
+    document.getElementById('logoPreviewSize').textContent = sizeKB + ' KB';
+    document.getElementById('logoPreviewBox').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearLogoSelection(){
+  document.getElementById('fcLogoUrl').value = '';
+  document.getElementById('fcLogoFile').value = '';
+  document.getElementById('logoPreviewBox').style.display = 'none';
+  _uploadedLogoData = null;
+  _cachedLogoData = null;
+  _cachedLogoUrl = '';
+}
+
+// Universal logo getter - priority: uploaded > URL
+async function getLogoData(){
+  if(_uploadedLogoData) return _uploadedLogoData;
+  const url = (document.getElementById('fcLogoUrl')||{}).value.trim();
+  if(url) return await fetchLogoAsBase64(url);
+  return null;
+}
+
+// ====================================================
+// CAPTION + SLUG generator
+// ====================================================
+// Realistic Vietnamese alt text patterns by section
+// 3/7 contain brand, 4/7 generic (natural SEO)
+const SECTION_CAPTION_TEMPLATES = {
+  1: { // Tổng quan
+    withBrand: [
+      'Giấy phép hoạt động hợp pháp của {brand}',
+      '{brand} - Thương hiệu uy tín với chứng nhận quốc tế',
+      'Hệ thống bảo mật và pháp lý của {brand}'
+    ],
+    generic: [
+      'Hệ thống bảo mật và giấy phép quốc tế',
+      'Trust signals - giấy phép & kiểm định ngành',
+      'Chứng nhận pháp lý và công nghệ bảo mật'
+    ]
+  },
+  2: { // Ưu điểm
+    withBrand: [
+      '5 ưu điểm vượt trội của {brand}',
+      'Vì sao thành viên chọn {brand}',
+      '{brand} - Những giá trị khác biệt'
+    ],
+    generic: [
+      '5 ưu điểm nổi bật của nền tảng giải trí',
+      'Giao diện - nạp rút - bảo mật - khuyến mãi - CSKH',
+      'Trải nghiệm vượt trội với 5 yếu tố cốt lõi'
+    ]
+  },
+  3: { // Kho game
+    withBrand: [
+      'Kho game đa dạng tại {brand}',
+      '{brand} - Hệ sinh thái giải trí toàn diện',
+      'Các sản phẩm game nổi bật của {brand}'
+    ],
+    generic: [
+      'Kho game đa dạng - thể thao, casino, slot, bắn cá',
+      '6 thể loại game hot - casino, thể thao, slot, nổ hũ, đá gà, xổ số',
+      'Hệ sinh thái giải trí trực tuyến đa dạng'
+    ]
+  },
+  4: { // Hướng dẫn
+    withBrand: [
+      'Hướng dẫn đăng ký tài khoản {brand}',
+      'Quy trình tham gia {brand} chỉ 4 bước',
+      '{brand} - 4 bước nạp rút nhanh chóng'
+    ],
+    generic: [
+      '4 bước đăng ký - tải app - nạp tiền - rút tiền',
+      'Quy trình tham gia chỉ trong vài phút',
+      'Hướng dẫn nhanh đăng ký và giao dịch'
+    ]
+  },
+  5: { // Khuyến mãi
+    withBrand: [
+      'Chương trình khuyến mãi tại {brand}',
+      '{brand} - Ưu đãi đa dạng cho thành viên',
+      'Khuyến mãi tân thủ và VIP tại {brand}'
+    ],
+    generic: [
+      'Chương trình ưu đãi và khuyến mãi đa dạng',
+      'Thưởng tân thủ - hoàn trả - VIP - sự kiện',
+      'Ưu đãi thành viên hấp dẫn nhất 2026'
+    ]
+  },
+  6: { // FAQ
+    withBrand: [
+      'Câu hỏi thường gặp về {brand}',
+      'Giải đáp thắc mắc khi tham gia {brand}',
+      '{brand} Q&A - Những điều cần biết'
+    ],
+    generic: [
+      'Câu hỏi thường gặp - giải đáp nhanh',
+      'FAQ về uy tín, đăng ký, nạp rút',
+      'Tổng hợp câu hỏi và trả lời chi tiết'
+    ]
+  },
+  7: { // Kết luận
+    withBrand: [
+      'Trải nghiệm {brand} ngay hôm nay',
+      '{brand} - Lựa chọn đáng tin cậy 2026',
+      'Đăng ký {brand} nhận ưu đãi tân thủ'
+    ],
+    generic: [
+      'Đăng ký ngay - nhận ưu đãi tân thủ',
+      'Trải nghiệm nền tảng giải trí uy tín',
+      'Lựa chọn đáng tin cậy cho năm 2026'
+    ]
+  }
+};
+
+// Convert Vietnamese text to slug
+function toSlug(str){
+  return str
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove accents
+    .replace(/đ/g, 'd').replace(/Đ/g, 'd')
+    .replace(/[^a-z0-9\s-]/g, '') // remove special chars
+    .replace(/\s+/g, '-')  // spaces -> dash
+    .replace(/-+/g, '-')   // collapse dashes
+    .replace(/^-|-$/g, '') // trim dashes
+    .substring(0, 80);     // limit length
+}
+
+// Generate caption + slug for a section
+// brandedIndexes: array of section IDs that should contain brand (3/7 by default)
+function generateCaptionFor(secId, brand, useBrand){
+  const tmpl = SECTION_CAPTION_TEMPLATES[secId];
+  if(!tmpl) return {caption:'', slug:''};
+  const pool = useBrand ? tmpl.withBrand : tmpl.generic;
+  // Random pick within pool
+  const seed = (parseInt(brand.length) * 7 + secId) % pool.length;
+  const caption = pool[seed].replace(/\{brand\}/g, brand);
+  const slug = toSlug(caption);
+  return {caption, slug};
+}
+
+// Decide which sections get brand keyword (3 out of selected sections)
+function pickBrandedSections(selectedIds){
+  // Prioritize semantic sections: §1 Tổng quan, §3 Kho game, §7 Kết luận (best brand fit)
+  const priority = [1, 3, 7, 2, 5, 4, 6];
+  const branded = [];
+  for(const id of priority){
+    if(selectedIds.includes(id)){
+      branded.push(id);
+      if(branded.length >= 3) break;
+    }
+  }
+  return branded;
+}
+
+
+
+async function callGeminiImageAPI(prompt, key, logoData){
+  // Default to Nano Banana 2 (supports image input + logo editing)
   const modelEl = document.getElementById('fcImgModel');
-  const model = (modelEl && modelEl.value) || 'gemini-2.5-flash-image';
+  const model = (modelEl && modelEl.value) || 'gemini-3.1-flash-image-preview';
+
+  // Build request parts: logo (if any) + text prompt
+  const reqParts = [];
+  if(logoData && logoData.data){
+    reqParts.push({inline_data: {mime_type: logoData.mimeType, data: logoData.data}});
+  }
+  reqParts.push({text: prompt});
+
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
   const r = await fetch(url, {
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify({
-      contents:[{parts:[{text:prompt}]}],
+      contents:[{parts: reqParts}],
       generationConfig:{responseModalities:['TEXT','IMAGE']}
     })
   });
@@ -3267,9 +3949,18 @@ async function regenSectionImage(secId){
   if(card){
     card.innerHTML = `<div style="aspect-ratio:2/1;background:#f1f5f9;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:13px">\u23f3 \u0110ang regen...</div><div style="margin-top:8px;font-size:12.5px;font-weight:600">${spec.label}</div>`;
   }
-  const fullPrompt = `Generate a horizontal banner image, 2:1 aspect ratio. ${stylePrompt} The illustration shows: ${spec.desc} Pure illustration, no text overlay, no logo, no watermark.`;
+  // Re-use cached logo (uploaded file OR URL)
+  const logoData = await getLogoData();
+
+  let fullPrompt;
+  if(logoData){
+    fullPrompt = `Generate a horizontal banner image, 2:1 aspect ratio, 800x400 pixels. ${stylePrompt} The main illustration shows: ${spec.desc}\n\nLOGO INTEGRATION: I provided a logo as first input. Place it naturally at SMALL size (10-15% width). YOU choose best position (top-left/top-right/bottom-right). Preserve logo colors. Suitable for section "${spec.label}".`;
+  } else {
+    fullPrompt = `Generate a horizontal banner image, 2:1 aspect ratio. ${stylePrompt} The illustration shows: ${spec.desc} Pure illustration, no text overlay, no logo, no watermark.`;
+  }
+
   try {
-    const imgBlob = await callGeminiImageAPI(fullPrompt, key);
+    const imgBlob = await callGeminiImageAPI(fullPrompt, key, logoData);
     const resized = await resizeAndCompressJpg(imgBlob, 800, 400, 100);
     const url = URL.createObjectURL(resized);
     const fname = `homepage-${spec.slug}.jpg`;
@@ -3361,6 +4052,24 @@ document.addEventListener('input',e=>{
 
 generate();
 generateWarning();
+</script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous">
+
+function copyText(text, evt){
+  if(evt) evt.stopPropagation();
+  if(navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(text).then(()=>{
+      const el = evt && evt.target; if(!el) return;
+      const orig = el.textContent; el.textContent = '\u2705 \u0110\u00e3 copy!';
+      setTimeout(()=>el.textContent = orig, 1200);
+    });
+  } else {
+    const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch(e){}
+    document.body.removeChild(ta);
+  }
+}
+
 </script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
